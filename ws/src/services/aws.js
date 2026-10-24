@@ -28,10 +28,14 @@ const s3 = new S3Client({
 module.exports = {
 
     async uploadToS3(file, filename) {
+
+        console.log('🔥 ENTROU NO uploadToS3');
+        console.log('FILE:', file);
+        console.log('FILENAME:', filename);
+
         try {
 
             console.log('Tentando enviar para bucket:', BUCKET_NAME);
-
             const command = new PutObjectCommand({
                 Bucket: BUCKET_NAME,
                 Key: filename,

@@ -24,6 +24,4 @@ const colaboradorServico = new Schema({
     },
 });
 
-salao.index({ geo: '2dsphere' });
-
 module.exports = mongoose.model('ColaboradorServico', colaboradorServico);

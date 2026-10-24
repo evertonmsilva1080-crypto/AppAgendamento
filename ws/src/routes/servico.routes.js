@@ -92,26 +92,21 @@ router.post('/', async (req, res) => {
 
 router.put('/:id', async (req, res) => {
     try {
-
         const { id } = req.params;
 
-        console.log('================================');
-        console.log('ID recebido no PUT:', id);
-
+        // 1. Verifica se o serviço existe
         const servicoExistente = await Servico.findById(id);
-
-        console.log('Serviço encontrado:', servicoExistente);
 
         if (!servicoExistente) {
             return res.status(404).json({
                 erro: true,
-                message: 'Serviço não encontrado.',
-                idRecebido: id
+                message: 'Serviço não encontrado.'
             });
         }
 
         const { salaoId, servico } = req.body;
 
+        // 2. Verifica se o campo servico foi enviado
         if (!servico) {
             return res.status(400).json({
                 erro: true,
@@ -119,6 +114,7 @@ router.put('/:id', async (req, res) => {
             });
         }
 
+        // 3. Converte o JSON recebido pelo multipart
         let jsonServico;
 
         try {
@@ -130,22 +126,78 @@ router.put('/:id', async (req, res) => {
             });
         }
 
+        // 4. Atualiza o serviço
         const servicoAtualizado = await Servico.findByIdAndUpdate(
             id,
             jsonServico,
             {
-                new: true,
+                returnDocument: 'after',
                 runValidators: true
             }
         );
 
-        return res.json({
+        // 5. Array para guardar os arquivos enviados
+        let arquivosBanco = [];
+
+        // 6. Verifica se existem arquivos
+        if (req.files && Object.keys(req.files).length > 0) {
+
+            console.log('Arquivos encontrados:', Object.keys(req.files));
+
+            for (const key of Object.keys(req.files)) {
+
+                const file = req.files[key];
+
+                // Extensão do arquivo
+                const nameParts = file.name.split('.');
+                const extension = nameParts[nameParts.length - 1];
+
+                // Nome único
+                const fileName = `${Date.now()}-${Math.round(Math.random() * 100000)}.${extension}`;
+
+                // Caminho dentro do bucket
+                const path = `servicos/${salaoId || servicoExistente.salaoId}/${fileName}`;
+
+                console.log('Caminho S3:', path);
+
+                // 7. Upload para o S3
+                const response = await aws.uploadToS3(file, path);
+
+                console.log('Resposta S3:', response);
+
+                // Se deu erro no upload
+                if (response.error) {
+                    return res.status(500).json({
+                        erro: true,
+                        message: response.message
+                    });
+                }
+
+                // 8. Salva o arquivo no MongoDB
+                const arquivoBanco = {
+                    referenciaId: servicoAtualizado._id,
+                    model: 'Servico',
+                    caminho: path
+                };
+
+                arquivosBanco.push(arquivoBanco);
+            }
+
+            // 9. Insere os arquivos no MongoDB
+            if (arquivosBanco.length > 0) {
+                await Arquivo.insertMany(arquivosBanco);
+            }
+        }
+
+        // 10. Retorna tudo
+        return res.status(200).json({
             erro: false,
-            servico: servicoAtualizado
+            message: 'Serviço atualizado com sucesso.',
+            servico: servicoAtualizado,
+            arquivos: arquivosBanco
         });
 
     } catch (err) {
-
         console.error('Erro ao atualizar serviço:', err);
 
         return res.status(500).json({

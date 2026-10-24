@@ -1,80 +1,94 @@
 const mongoose = require('mongoose');
+
 const Schema = mongoose.Schema;
 
-const colaborador = new Schema ({
+const contaBancariaSchema = new Schema({
+    titular: { type: String, required: true },
+    cpfCnpj: { type: String, required: true },
+    banco: { type: String, required: true },
+    tipo: { type: String, required: true },
+    agencia: { type: String, required: true },
+    numero: { type: String, required: true },
+    dv: { type: String, required: true },
+}, { _id: false });
+
+const colaborador = new Schema({
+
     nome: {
         type: String,
-        required:true,
+        required: true,
     },
+
     telefone: {
         type: String,
-        required:true,
+        required: true,
     },
+
     email: {
         type: String,
-        required:true,
+        required: true,
     },
+
     senha: {
         type: String,
-        required:true,
+        default: null,
     },
+
     foto: {
         type: String,
-        required:true,
+        required: true,
     },
+
     dataNascimento: {
         type: String,
-        required:true,
+        required: true,
     },
+
     sexo: {
         type: String,
-        enum: ['M','F'],
-        required:true,
+        enum: ['M', 'F'],
+        required: true,
     },
+
     status: {
         type: String,
-        required:true,
-        enum: ['A','I'],
+        required: true,
+        enum: ['A', 'I'],
         default: 'A'
     },
+
+    // Opcional durante o cadastro inicial. Quando informado, os campos
+    // continuam obrigatórios; pode ser preenchido posteriormente.
     contaBancaria: {
-        titular: {
-            type: String,
-            required: true
-        },
-        cpfCnpj: {
-            type: String,
-            required: true
-        },
-        banco: {
-            type: String,
-            required: true
-        },
-        tipo: {
-            type: String,
-            required: true
-        },
-        agencia: {
-            type: String,
-            required: true
-        },
-        numero: {
-            type: String,
-            required: true
-        },
-        dv: {
-            type: String,
-            required: true
-        }
+        type: contaBancariaSchema,
+        required: false,
+        default: undefined,
     },
-    recipientId: {
+
+    // ==========================================
+    // DADOS DA SUBCONTA ASAAS
+    // ==========================================
+
+    asaasAccountId: {
         type: String,
-        required: true
+        default: null
     },
+
+    asaasWalletId: {
+        type: String,
+        default: null
+    },
+
+    asaasApiKey: {
+        type: String,
+        default: null
+    },
+
     dataCadastro: {
         type: Date,
         default: Date.now,
     },
+
 });
 
 module.exports = mongoose.model('Colaborador', colaborador);

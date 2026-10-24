@@ -24,6 +24,4 @@ const salaoColaborador = new Schema({
     },
 });
 
-salao.index({ geo: '2dsphere' });
-
 module.exports = mongoose.model('SalaoColaborador', salaoColaborador);
