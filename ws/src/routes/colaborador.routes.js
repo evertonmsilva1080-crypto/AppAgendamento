@@ -6,6 +6,7 @@ const router = express.Router();
 const Colaborador = require('../models/colaborador');
 const SalaoColaborador = require('../models/relationship/salaoColaborador');
 const ColaboradorServico = require('../models/relationship/colaboradorServico');
+const Servico = require('../models/servico');
 
 const moment = require('moment');
 
@@ -393,38 +394,99 @@ ATUALIZAR COLABORADOR
 */
 
 router.put('/:colaboradorId', async (req, res) => {
+    const { colaboradorId } = req.params;
+    const { salaoId, vinculoId, vinculo, especialidades } = req.body;
+
+    if (!mongoose.isValidObjectId(colaboradorId) || !mongoose.isValidObjectId(salaoId) || !mongoose.isValidObjectId(vinculoId)) {
+        return res.status(400).json({ error: true, message: 'Informe colaboradorId, salaoId e vinculoId válidos.' });
+    }
+    if (vinculo !== undefined && !['A', 'I'].includes(vinculo)) {
+        return res.status(400).json({ error: true, message: 'vinculo deve ser A ou I.' });
+    }
+    if (especialidades !== undefined && !Array.isArray(especialidades)) {
+        return res.status(400).json({ error: true, message: 'especialidades deve ser um array de IDs de serviços.' });
+    }
+
+    const session = await mongoose.connection.startSession();
+    session.startTransaction();
 
     try {
+        const relacao = await SalaoColaborador.findOne({
+            _id: vinculoId,
+            salaoId,
+            colaboradorId,
+            status: { $ne: 'E' },
+        }).session(session);
 
-        const { vinculo, vinculoId, especialidades } = req.body;
-        const { colaboradorId } = req.params;
-
-        await Colaborador.findByIdAndUpdate( colaboradorId,req.body );
-
-        /*
-        ==============================================
-        ATUALIZANDO VÍNCULO
-        ==============================================
-        */
-
-        if (vinculo) {
-            await SalaoColaborador.findByIdAndUpdate(vinculoId,{status: vinculo});
+        if (!relacao) {
+            await session.abortTransaction();
+            return res.status(404).json({ error: true, message: 'Vínculo ativo ou inativo deste colaborador não encontrado no salão.' });
         }
 
-        /*
-        ==============================================
-        ATUALIZANDO ESPECIALIDADES
-        ==============================================
-        */
-
-        if (especialidades) {
-            await ColaboradorServico.deleteMany({colaboradorId,});
-            await ColaboradorServico.insertMany(especialidades.map((servicoId) => ({servicoId,colaboradorId,})));
+        const camposPermitidos = ['nome', 'telefone', 'email', 'foto', 'dataNascimento', 'sexo'];
+        const dadosColaborador = {};
+        for (const campo of camposPermitidos) {
+            if (Object.prototype.hasOwnProperty.call(req.body, campo)) {
+                dadosColaborador[campo] = req.body[campo];
+            }
         }
-        res.json({error: false});
 
+        let colaborador = await Colaborador.findByIdAndUpdate(
+            colaboradorId,
+            dadosColaborador,
+            { new: true, runValidators: true, session }
+        );
+
+        if (!colaborador) {
+            await session.abortTransaction();
+            return res.status(404).json({ error: true, message: 'Colaborador não encontrado.' });
+        }
+
+        if (vinculo !== undefined) {
+            relacao.status = vinculo;
+            await relacao.save({ session });
+        }
+
+        if (especialidades !== undefined) {
+            const idsSolicitados = [...new Set(especialidades.map(String))];
+            const idsInvalidos = idsSolicitados.filter(id => !mongoose.isValidObjectId(id));
+            if (idsInvalidos.length) {
+                await session.abortTransaction();
+                return res.status(400).json({ error: true, message: 'Uma ou mais especialidades contêm IDs inválidos.' });
+            }
+
+            const servicosDoSalao = await Servico.find({ salaoId }).select('_id status').session(session);
+            const idsDoSalao = servicosDoSalao.map(servico => String(servico._id));
+            const idsDisponiveis = new Set(
+                servicosDoSalao.filter(servico => servico.status !== 'E').map(servico => String(servico._id))
+            );
+            const servicosDeOutroSalao = idsSolicitados.filter(id => !idsDisponiveis.has(id));
+            if (servicosDeOutroSalao.length) {
+                await session.abortTransaction();
+                return res.status(400).json({ error: true, message: 'Todas as especialidades precisam ser serviços disponíveis deste salão.' });
+            }
+
+            await ColaboradorServico.deleteMany({
+                colaboradorId,
+                servicoId: { $in: idsDoSalao },
+            }).session(session);
+
+            if (idsSolicitados.length) {
+                await ColaboradorServico.insertMany(
+                    idsSolicitados.map(servicoId => ({ colaboradorId, servicoId, status: 'A' })),
+                    { session }
+                );
+            }
+        }
+
+        await session.commitTransaction();
+        return res.json({ error: false, colaborador });
     } catch (err) {
-        res.json({error: true, message: err.message,});
+        if (session.inTransaction()) await session.abortTransaction();
+        console.error('Erro ao atualizar colaborador:', err);
+        return res.status(500).json({ error: true, message: err.message });
+    } finally {
+        await session.endSession();
     }
 });
 /*

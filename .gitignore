@@ -12,6 +12,12 @@ AppAgendamento/
 **/.env
 **/.env.*
 !**/.env.example
+.agents
+.codex
+.vscode
+.impeccable
+**/PRODUCT.md
+**/skills-lock.json
 
 # Local logs
 npm-debug.log*

@@ -2,6 +2,11 @@ const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
 const agendamento = new Schema({
+    clienteId: {
+        type: mongoose.Types.ObjectId,
+        ref: 'Cliente',
+        required: true,
+    },
     salaoId: {
         type: mongoose.Types.ObjectId,
         ref: 'Salao',
@@ -29,16 +34,33 @@ const agendamento = new Schema({
         type: Number,
         required: true,
     },
-    transctionId: {
+    transactionId: {
         type: String,
+        required: true,
+    },
+    paymentStatus: {
+        type: String,
+        required: true,
+    },
+    invoiceUrl: String,
+    taxaSalaoPercentual: {
+        type: Number,
+        required: true,
+    },
+    taxaColaboradorPercentual: {
+        type: Number,
+        required: true,
+    },
+    taxaAppPercentual: {
+        type: Number,
         required: true,
     },
     dataCadastro: {
         type: Date,
-        required: true,
+        default: Date.now,
     },
 });
 
-salao.index({ geo: '2dsphere' });
+agendamento.index({ salaoId: 1, data: 1 });
 
 module.exports = mongoose.model('Agendamento', agendamento);

@@ -1,0 +1,109 @@
+:root {
+  color-scheme: dark;
+  --orange: #ff7900;
+  --orange-2: #ff9e00;
+  --purple: #eee2f7;
+  --purple-2: #c997f3;
+  --purple-3: #b876ec;
+  --ink: #f4eef8;
+  --muted: #b1a5b9;
+  --line: #392e41;
+  --paper: #1c1721;
+  --canvas: #110e14;
+  --shadow: 0 14px 38px rgba(0, 0, 0, .34);
+  background: var(--canvas);
+  color: var(--ink);
+}
+html, body, #root { min-height: 100%; background: var(--canvas); color: var(--ink); }
+body { background: var(--canvas); color: var(--ink); }
+input, select, textarea { color-scheme: dark; background-color: #211a27; color: var(--ink); border-color: var(--line); }
+input::placeholder, textarea::placeholder { color: #95889d; }
+.brand { color: #fff; }
+.brand-light { color: var(--orange-2); }
+.eyebrow { color: var(--orange-2); }
+.section-heading h2, .section-title, .page-state h2 { color: var(--ink); }
+.button-ghost, .icon-button { color: var(--purple); background: #261d2d; border-color: #45364e; }
+.button-dark { color: #fff; background: #512079; }
+.error-banner { color: #ffc3bd; background: #351c20; border-color: #693239; }
+.notice-banner { color: #e3d1f3; background: #2a2034; border-color: #4c385c; }
+.state-symbol { background: #3b261c; color: #ffad6b; }
+.avatar { background: #352540; color: #e6cafa; }
+.pill { background: #33253d; color: #e2c9f7; }
+.spinner { border-color: #47384f; border-top-color: var(--orange); }
+.mobile-bottom { background: #1b161f; border-color: #382c40; box-shadow: 0 -8px 28px #0008; }
+.bottom-price { color: var(--ink); }
+/* Salon */
+.salon-page { background: var(--canvas); color: var(--ink); }
+.salon-header { background: #18131b; border-color: var(--line); }
+.panel-link { color: #d6b3f3; }
+.salon-hero { background: #1a1022; }
+.hero-count { background: #261d2d; color: var(--ink); box-shadow: var(--shadow); }
+.hero-count span { color: var(--muted); }
+.count-label, .service-main p, .aside-note, .help-card p, .empty-services span { color: var(--muted); }
+.service-row { border-color: var(--line); }
+.service-icon { color: #ffad68; background: #38251b; }
+.service-main h3, .service-end strong, .stylist-card h2, .help-card strong { color: var(--ink); }
+.service-dot { color: #796d80; }
+.choose-service { color: #e0c3f6; background: #261d2d; border-color: #45364e; }
+.choose-service:hover { color: white; background: var(--orange); border-color: var(--orange); }
+.aside-card, .input-action input { background: var(--paper); border-color: var(--line); }
+.stylist { color: var(--ink); }
+.aside-rule { background: var(--line); }
+.help-icon { background: #342542; color: #dab6f4; }
+.empty-services { color: #e0c3f6; border-color: #594369; background: #19131e; }
+.salon-id-prompt h1, .salon-id-prompt label { color: var(--ink); }
+.salon-id-prompt > p { color: var(--muted); }
+/* Booking */
+.booking-page { background: var(--canvas); color: var(--ink); }
+.booking-header { background: #18131b; border-color: var(--line); }
+.booking-title h1, .step-heading h2, .booking-summary h2, .summary-person strong, .summary-total strong { color: var(--ink); }
+.booking-title p, .step-heading p, .time-label, .no-times, .summary-meta span { color: var(--muted); }
+.booking-step { border-color: var(--line); }
+.step-number { background: #33253d; color: #e2c9f7; }
+.specialist-option, .date-chip, .time-chip { color: #ede4f3; background: #211a27; border-color: #403347; }
+.specialist-option.selected { background: #382747; border-color: #a96be0; box-shadow: 0 0 0 2px #a96be033; }
+.specialist-check, .summary-meta svg { color: #d4a8f4; }
+.date-chip strong, .time-chip { color: #efe5f5; }
+.date-chip.active { background: #52227b; border-color: #9a5bc6; color: #ead8fa; }
+.date-chip.active strong { color: white; }
+.time-chip:hover, .time-chip.active { color: #fff; background: var(--orange); border-color: var(--orange); }
+.booking-summary, .success-card { background: var(--paper); border-color: var(--line); box-shadow: var(--shadow); }
+.summary-meta, .summary-person { border-color: var(--line); }
+.summary-person small, .summary-total, .booking-summary > p { color: var(--muted); }
+.field { color: #e6d8ef; }
+.field input, .field select { color: var(--ink); background: #211a27; border-color: var(--line); }
+.success-card h1 { color: var(--ink); }
+.success-card > p, .success-detail span { color: var(--muted); }
+.success-detail { border-color: var(--line); }
+.success-detail strong { color: var(--ink); }
+.success-mark { color: #9fe0b2; background: #1d3528; }
+/* Salon panel */
+.panel-layout { background: var(--canvas); color: var(--ink); }
+.panel-sidebar { background: #180d20; }
+.panel-main, .panel-topbar { color: var(--ink); }
+.panel-topbar { background: #18131b; border-color: var(--line); }
+.panel-topbar h1, .section-heading h2 { color: var(--ink); }
+.breadcrumb, .panel-search { color: var(--muted); }
+.panel-search, .date-field { background: #211a27; border-color: var(--line); }
+.panel-search input, .date-field input { color: var(--ink); }
+.panel-welcome { background: linear-gradient(110deg, #261334, #3c1b55); }
+.panel-welcome p { color: #d0bfda; }
+.metric-card, .appointment-list, .panel-list, .panel-empty { color: var(--ink); background: var(--paper); border-color: var(--line); }
+.metric-card > span, .metric-card small, .appointment-time span, .appointment-info span, .row-primary small { color: var(--muted); }
+.metric-card strong, .appointment-time strong, .appointment-end > strong, .row-primary strong, .row-price { color: var(--ink); }
+.metric-card:nth-child(2) { background: #2b211d; border-color: #59402e; }
+.appointment-row, .panel-list-row { border-color: #332a39; }
+.appointment-divider { background: var(--orange); }
+.status-tag { color: #e8d7f6; background: #372746; }
+.mini-icon { color: #dfbef7; background: #342542; }
+.panel-empty { border-color: #51405d; }
+.panel-empty p { color: var(--muted); }
+.panel-id-screen { background: var(--canvas); color: var(--ink); }
+.panel-id-screen h1 { color: var(--ink); }
+.panel-id-screen p { color: var(--muted); }
+.panel-id-screen input { color: var(--ink); background: #211a27; border-color: var(--line); }
+.mobile-tabs { background: #1b161f; border-color: var(--line); box-shadow: 0 -5px 20px #0007; }
+.mobile-tabs button { color: #a69aaa; }
+.mobile-tabs button.active { color: #e0c1f5; }
+.mobile-tabs button.active svg { color: var(--orange-2); }
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }

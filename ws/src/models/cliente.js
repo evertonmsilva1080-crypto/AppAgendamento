@@ -16,11 +16,11 @@ const cliente = new Schema ({
     },
     senha: {
         type: String,
-        required:true,
+        default: null,
     },
     foto: {
         type: String,
-        required:true,
+        default: null,
     },
     dataNascimento: {
         type: String,
@@ -54,6 +54,9 @@ const cliente = new Schema ({
         cep: String,
         numero: String,
         pais: String,
+    },
+    asaasCustomerId: {
+        type: String,
     },
     dataCadastro: {
         type: Date,

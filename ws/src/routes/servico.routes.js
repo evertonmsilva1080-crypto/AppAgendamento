@@ -10,6 +10,13 @@ router.post('/', async (req, res) => {
 
         const { salaoId, servico } = req.body;
 
+        if (!salaoId) {
+            return res.status(400).json({
+                erro: true,
+                message: 'O campo salaoId é obrigatório.'
+            });
+        }
+
         if (!servico) {
             return res.status(400).json({
                 erro: true,
@@ -20,7 +27,7 @@ router.post('/', async (req, res) => {
         let jsonServico;
 
         try {
-            jsonServico = JSON.parse(servico);
+            jsonServico = typeof servico === 'string' ? JSON.parse(servico) : servico;
         } catch (err) {
             return res.status(400).json({
                 erro: true,
@@ -59,9 +66,10 @@ router.post('/', async (req, res) => {
             }
         }
 
-        const servicoCadastrado = await new Servico(
-            jsonServico
-        ).save();
+        const servicoCadastrado = await new Servico({
+            ...jsonServico,
+            salaoId,
+        }).save();
 
         const arquivosBanco = arquivos.map((arquivo) => ({
             referenciaId: servicoCadastrado._id,
@@ -118,7 +126,7 @@ router.put('/:id', async (req, res) => {
         let jsonServico;
 
         try {
-            jsonServico = JSON.parse(servico);
+            jsonServico = typeof servico === 'string' ? JSON.parse(servico) : servico;
         } catch (err) {
             return res.status(400).json({
                 erro: true,
@@ -129,7 +137,10 @@ router.put('/:id', async (req, res) => {
         // 4. Atualiza o serviço
         const servicoAtualizado = await Servico.findByIdAndUpdate(
             id,
-            jsonServico,
+            {
+                ...jsonServico,
+                salaoId: salaoId || servicoExistente.salaoId || jsonServico.salaoId,
+            },
             {
                 returnDocument: 'after',
                 runValidators: true

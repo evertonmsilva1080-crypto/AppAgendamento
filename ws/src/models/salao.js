@@ -18,12 +18,21 @@ const salao = new Schema({
         default: null,
     },
     telefone: String,
+    asaasWalletId: {
+        type: String,
+        default: null,
+    },
     endereco: {
         cidade: String,
         uf: String,
         cep: String,
         numero: String,
         pais: String,
+    },
+    diasFuncionamento: {
+        type: [Number],
+        default: undefined,
+        validate: { validator: dias => dias.every(dia => Number.isInteger(dia) && dia >= 0 && dia <= 6), message: 'Dias de funcionamento inválidos.' },
     },
     geo: {
         type: {
