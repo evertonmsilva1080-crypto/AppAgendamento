@@ -16,7 +16,7 @@ if (!URI) {
 }
 
 mongoose
-    .connect(URI)
+    .connect(URI, { dbName: 'AgendaFacil' })
     .then(() => {
         console.log('DB is Up!');
     })

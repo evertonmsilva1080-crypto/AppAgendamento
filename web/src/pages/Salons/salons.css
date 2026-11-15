@@ -1,0 +1,51 @@
+.salons-page{min-height:100vh;background:#fff;color:#151323}
+.salons-container{width:min(100% - 48px,1120px);margin-inline:auto}
+.salons-header{height:72px;border-bottom:1px solid #f0edf2;background:#fff}
+.salons-nav{height:100%;display:flex;align-items:center;justify-content:space-between;gap:18px}
+.salons-brand{width:145px;height:52px;overflow:hidden}
+.salons-brand img{width:100%;height:100%;object-fit:cover}
+.salons-back{display:inline-flex;min-height:44px;align-items:center;color:#5422a0;font-size:13px;font-weight:700}
+.salons-main{padding-top:48px;padding-bottom:72px}
+.salons-eyebrow{display:inline-flex;align-items:center;color:#5422a0;font-size:10px;font-weight:800;letter-spacing:1.8px}
+.salons-heading{display:flex;align-items:end;justify-content:space-between;gap:24px;margin-top:12px;margin-bottom:22px}
+.salons-heading h1{margin:0;color:#151323;font-size:clamp(32px,5vw,46px);line-height:1.06;letter-spacing:-1.8px}
+.salons-heading p{margin:9px 0 0;color:#706d79;font-size:14px;line-height:1.55}
+.salons-search{display:flex;align-items:center;gap:10px;width:min(340px,100%);height:48px;padding:0 13px;border:1px solid #e8e3ec;border-radius:13px;background:#fff;color:#87808e}
+.salons-search:focus-within{border-color:#7b2cbf;outline:3px solid #7b2cbf2e;outline-offset:2px}
+.salons-search input{width:100%;min-width:0;border:0;outline:0;background:transparent;color:#151323;font-size:14px}
+.salons-search input::placeholder{color:#8c8592}
+.salons-count{margin:0 0 12px;color:#706d79;font-size:12px}
+.salons-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.salons-card{min-width:0;display:grid;grid-template-columns:112px minmax(0,1fr);align-items:center;gap:14px;padding:12px;border:1px solid #ece8ef;border-radius:16px;background:#fff;transition:border-color .18s,box-shadow .18s,transform .18s}
+.salons-card:hover{transform:translateY(-2px);border-color:#d8c5e9;box-shadow:0 12px 28px #32105f12}
+.salons-card-image{width:112px;height:104px;display:grid;place-items:center;overflow:hidden;border-radius:11px;background:linear-gradient(145deg,#fff0df,#f1eafa);color:#7b2cbf}
+.salons-card-image img{width:100%;height:100%;object-fit:cover}
+.salons-card-copy{min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:7px}
+.salons-card-copy>strong{width:100%;overflow:hidden;color:#241b2d;font-size:14px;line-height:1.35;text-overflow:ellipsis;white-space:nowrap}
+.salons-card-location{display:flex;align-items:center;gap:5px;max-width:100%;overflow:hidden;color:#706d79;font-size:11px;text-overflow:ellipsis;white-space:nowrap}
+.salons-card-location svg{flex:none;color:#7b2cbf}
+.salons-card-link{display:inline-flex;align-items:center;gap:5px;margin-top:2px;color:#5422a0;font-size:11px;font-weight:700}
+.salons-state{min-height:220px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px;border:1px dashed #dcd5e2;border-radius:16px;background:#fff;text-align:center}
+.salons-state h2{margin:0;color:#241b2d;font-size:18px}
+.salons-state p{max-width:440px;margin:9px 0 16px;color:#706d79;font-size:13px;line-height:1.6}
+.salons-retry{min-height:44px;padding:0 16px;border:1px solid #e8e3ec;border-radius:12px;background:#fff;color:#241b2d;font-size:13px;font-weight:700}
+@media(max-width:900px){.salons-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:650px){
+ .salons-container{width:min(100% - 32px,520px)}
+ .salons-header{height:64px}
+ .salons-brand{width:125px;height:47px}
+ .salons-main{padding-top:34px;padding-bottom:52px}
+ .salons-heading{display:block;margin-top:10px;margin-bottom:18px}
+ .salons-heading h1{font-size:34px;letter-spacing:-1.3px}
+ .salons-heading p{font-size:13px}
+ .salons-search{width:100%;margin-top:16px}
+ .salons-count{margin-bottom:10px}
+ .salons-list{grid-template-columns:1fr;gap:10px}
+ .salons-card{grid-template-columns:88px minmax(0,1fr);gap:12px;padding:10px;border-radius:14px}
+ .salons-card-image{width:88px;height:88px;border-radius:10px}
+ .salons-card-copy>strong{font-size:14px}
+ .salons-card-location{font-size:12px}
+ .salons-card-link{font-size:12px}
+ .salons-state{min-height:190px;padding:22px 16px}
+}
+@media(prefers-reduced-motion:reduce){.salons-card{transition:none}}

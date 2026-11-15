@@ -10,15 +10,18 @@ const Salao = require('../models/salao');
 const Servico = require('../models/servico');
 const Colaborador = require('../models/colaborador');
 const SalaoColaborador = require('../models/relationship/salaoColaborador');
+const SalaoCliente = require('../models/relationship/salaoCliente');
 const ColaboradorServico = require('../models/relationship/colaboradorServico');
 const Horario = require('../models/horario');
 const util = require('../util');
+const { requireAuth, requireRole, requireSalonOwner } = require('../auth/middleware');
 
 const TAXA_APP_PERCENTUAL = 2.5;
 const TAXA_COLABORADOR_PERCENTUAL = 40;
 const TAXA_SALAO_PERCENTUAL = 100 - TAXA_APP_PERCENTUAL - TAXA_COLABORADOR_PERCENTUAL;
 
-router.post('/', async (req, res) => {
+router.post('/', requireAuth, requireRole('cliente'), async (req, res) => {
+    if (String(req.body?.clienteId) !== String(req.auth.sub)) return res.status(403).json({ error: true, message: 'Só é possível agendar usando a sua própria conta de cliente.' });
     const { clienteId, salaoId, servicoId, colaboradorId, data } = req.body;
 
     const ids = { clienteId, salaoId, servicoId, colaboradorId };
@@ -109,6 +112,12 @@ router.post('/', async (req, res) => {
             return res.status(400).json({ error: true, message: 'O preço do serviço precisa ser maior que zero.' });
         }
 
+        await SalaoCliente.findOneAndUpdate(
+            { salaoId, clienteId },
+            { $set: { status: 'A' }, $setOnInsert: { salaoId, clienteId } },
+            { upsert: true, new: true, setDefaultsOnInsert: true }
+        );
+
         const agendamentoId = new mongoose.Types.ObjectId();
         const dueDate = dataAgendamento.format('YYYY-MM-DD');
 
@@ -176,7 +185,18 @@ router.post('/', async (req, res) => {
     }
 });
 
-router.post('/filter', async (req,res) => {
+router.get('/minhas', requireAuth, requireRole('cliente'), async (req, res) => {
+    try {
+        const agendamentos = await Agendamento.find({ clienteId: req.auth.sub }).sort({ data: -1 }).populate([
+            { path: 'salaoId', select: 'nome foto' },
+            { path: 'servicoId', select: 'titulo duracao' },
+            { path: 'colaboradorId', select: 'nome foto' },
+        ]);
+        return res.json({ error: false, agendamentos });
+    } catch (err) { return res.status(500).json({ error: true, message: err.message }); }
+});
+
+router.post('/filter', requireAuth, requireRole('salao'), requireSalonOwner, async (req,res) => {
     try {
         const { periodo, salaoId } = req.body;
         const { inicio, final } = periodo || {};
@@ -246,7 +266,7 @@ router.post('/dias-disponiveis', async (req, res) => {
         let dia = dataInicial.clone().startOf('day');
 
         for (let i = 0; i <= 365 && agenda.length < 7; i++) {
-            const diaAberto = !Array.isArray(sala?.diasFuncionamento) || sala.diasFuncionamento.includes(dia.day());
+            const diaAberto = !Array.isArray(salao?.diasFuncionamento) || salao.diasFuncionamento.includes(dia.day());
             const horariosDoDia = diaAberto ? horarios.filter(horario => horario.dias.includes(dia.day())) : [];
             if (horariosDoDia.length > 0) {
                 const janelasPorColaborador = {};

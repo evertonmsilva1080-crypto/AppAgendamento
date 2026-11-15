@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 
 export function Brand({ inverse = false }) {
-  return <Link className={`brand ${inverse ? 'brand-inverse' : ''}`} to="/" aria-label="Corte Certo, início"><span className="brand-mark">c.</span><span>corte<span className="brand-light">certo</span></span></Link>
+  return <Link className={`brand app-brand ${inverse ? 'brand-inverse' : ''}`} to="/" aria-label="Agenda Fácil, início"><img src="/brand/logo-agenda-facil.png" alt="Agenda Fácil" /></Link>
 }
 
 const paths = {

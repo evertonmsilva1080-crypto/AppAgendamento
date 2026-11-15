@@ -1,8 +1,15 @@
 import axios from 'axios'
+import { getAuth } from './auth.js'
 
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000',
   timeout: 12000,
+})
+
+api.interceptors.request.use(config => {
+  const session = getAuth()
+  if (session?.token) config.headers.Authorization = `Bearer ${session.token}`
+  return config
 })
 
 function unwrap(response) {
@@ -11,7 +18,15 @@ function unwrap(response) {
   return data
 }
 
+export const authApi = {
+  login: async (body) => unwrap(await api.post('/auth/login', body)),
+  registerClient: async (body) => unwrap(await api.post('/auth/register/cliente', body)),
+  registerSalon: async (body) => unwrap(await api.post('/auth/register/salao', body)),
+  me: async () => unwrap(await api.get('/auth/me')),
+}
+
 export const salonApi = {
+  list: async () => unwrap(await api.get('/salao')),
   get: async (id) => unwrap(await api.get(`/salao/${id}`)),
   updateSalonProfile: async (id, body) => unwrap(await api.put(`/salao/${id}`, body)),
   services: async (id) => unwrap(await api.get(`/servico/salao/${id}`)),
@@ -28,6 +43,7 @@ export const salonApi = {
   deleteHours: async (id, salaoId) => unwrap(await api.delete(`/horario/${id}`, { data: { salaoId } })),
   availability: async (body) => unwrap(await api.post('/agendamento/dias-disponiveis', body)),
   appointments: async (body) => unwrap(await api.post('/agendamento/filter', body)),
+  myAppointments: async () => unwrap(await api.get('/agendamento/minhas')),
   clients: async (id) => unwrap(await api.get(`/cliente/salao/${id}`)),
   createClient: async (body) => unwrap(await api.post('/cliente', body)),
   book: async (body) => unwrap(await api.post('/agendamento', body)),

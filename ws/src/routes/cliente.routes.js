@@ -5,6 +5,7 @@ const Cliente = require('../models/cliente');
 const SalaoCliente = require('../models/relationship/salaoCliente');
 const moment = require('moment');
 const asaas = require('../services/asaas');
+const { requireAuth, requireRole, requireSalonOwner } = require('../auth/middleware');
 
 function normalizarTipoDocumento(tipo) {
   const valor = String(tipo || '').toLowerCase();
@@ -43,7 +44,9 @@ async function criarClienteAsaas(cliente, clienteId) {
   return resposta.data.id;
 }
 
-router.post('/', async (req, res) => {
+router.post('/', requireAuth, requireRole('cliente'), async (req, res) => {
+  const identity = await Cliente.findById(req.auth.sub).select('email telefone');
+  if (!identity || identity.email.toLowerCase() !== String(req.body?.cliente?.email || '').trim().toLowerCase() || identity.telefone !== String(req.body?.cliente?.telefone || '').trim()) return res.status(403).json({ error: true, message: 'Só é possível vincular ao salão a sua própria conta de cliente.' });
   const { cliente, salaoId } = req.body;
   const tipoDocumento = normalizarTipoDocumento(cliente?.documento?.tipo);
 
@@ -172,22 +175,29 @@ router.post('/', async (req, res) => {
   }
 });
 
-router.post('/filter', async (req, res) => {
+router.get('/me', requireAuth, requireRole('cliente'), async (req, res) => {
+  const cliente = await Cliente.findById(req.auth.sub).select('nome email telefone foto dataNascimento sexo documento');
+  if (!cliente) return res.status(404).json({ error: true, message: 'Conta de cliente não encontrada.' });
+  return res.json({ error: false, cliente });
+});
+
+router.post('/filter', requireAuth, requireRole('salao'), async (req, res) => {
   try {
-    const clientes = await Cliente.find(req.body.filters);
+    const vinculos = await SalaoCliente.find({ salaoId: req.auth.sub, status: 'A' }).select('clienteId');
+    const clientes = await Cliente.find({ _id: { $in: vinculos.map(v => v.clienteId) } }).select('-senha -asaasCustomerId -__v');
     res.json({ error: false, clientes });
   } catch (err) {
     res.json({ error: true, message: err.message });
   }
 });
 
-router.get('/salao/:salaoId', async (req, res) => {
+router.get('/salao/:salaoId', requireAuth, requireRole('salao'), requireSalonOwner, async (req, res) => {
   try {
     const clientes = await SalaoCliente.find({
       salaoId: req.params.salaoId,
       status: 'A',
     })
-      .populate('clienteId')
+      .populate('clienteId', 'nome email telefone status dataCadastro foto')
       .select('clienteId');
 
     res.json({
@@ -203,10 +213,11 @@ router.get('/salao/:salaoId', async (req, res) => {
   }
 });
 
-router.delete('/vinculo/:id', async (req, res) => {
+router.delete('/vinculo/:id', requireAuth, requireRole('salao'), async (req, res) => {
   try {
-    await SalaoCliente.findByIdAndUpdate(req.params.id, { status: 'I' });
-    res.json({ error: false });
+    const vinculo = await SalaoCliente.findOneAndUpdate({ _id: req.params.id, salaoId: req.auth.sub }, { status: 'I' });
+    if (!vinculo) return res.status(404).json({ error: true, message: 'Vínculo não encontrado neste salão.' });
+    return res.json({ error: false });
   } catch (err) {
     res.json({ error: true, message: err.message });
   }

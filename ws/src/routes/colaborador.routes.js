@@ -11,8 +11,10 @@ const Servico = require('../models/servico');
 const moment = require('moment');
 
 const asaas = require('../services/asaas');
+const { optionalAuth, requireAuth, requireRole } = require('../auth/middleware');
 
-router.post('/', async (req, res) => {
+router.post('/', requireAuth, requireRole('salao'), async (req, res) => {
+    if (String(req.body?.salaoId) !== String(req.auth.sub)) return res.status(403).json({ error: true, message: 'Você só pode gerenciar a equipe do seu salão.' });
 
     const db = mongoose.connection;
     const session = await db.startSession();
@@ -308,11 +310,12 @@ FILTER
 ==================================================
 */
 
-router.post('/filter', async (req, res) => {
+router.post('/filter', requireAuth, requireRole('salao'), async (req, res) => {
 
     try {
 
-        const colaboradores = await Colaborador.find(req.body.filters);
+        const ids = await SalaoColaborador.find({ salaoId: req.auth.sub, status: { $ne: 'E' } }).distinct('colaboradorId');
+        const colaboradores = await Colaborador.find({ _id: { $in: ids } }).select('-senha -asaasApiKey -asaasWalletId -asaasAccountId -contaBancaria');
         res.json({ error: false, colaboradores,});
 
     } catch (err) {
@@ -326,7 +329,7 @@ COLABORADORES DO SALÃO
 ==================================================
 */
 
-router.get('/salao/:salaoId', async (req, res) => {
+router.get('/salao/:salaoId', optionalAuth, async (req, res) => {
 
     try {
 
@@ -334,7 +337,7 @@ router.get('/salao/:salaoId', async (req, res) => {
         let listaColaboradores = [];
 
         const colaboradores = await SalaoColaborador.find({ salaoId, status: { $ne: 'E' }, })
-            .populate({ path: 'colaboradorId', select: '-senha -recepientId'})
+            .populate({ path: 'colaboradorId', select: 'nome telefone email foto dataNascimento sexo status' })
             .select('colaboradorId dataCadastro status');
 
         for (let colaborador of colaboradores) {
@@ -359,18 +362,16 @@ router.get('/salao/:salaoId', async (req, res) => {
             error: false,
 
             colaboradores:
-                listaColaboradores.map((vinculo) => ({
-
-                    ...vinculo.colaboradorId._doc,
-                    vinculoId: vinculo._id,
-                    vinculo: vinculo.status,
-                    especialidades:
-                        vinculo.especialidades,
-                    dataCadastro:
-                        moment(vinculo.dataCadastro)
-                            .format('DD/MM/YYYY'),
-
-                })),
+                listaColaboradores.map((vinculo) => {
+                    if (req.auth?.role === 'salao' && String(req.auth.sub) === String(salaoId)) return {
+                        ...vinculo.colaboradorId._doc,
+                        vinculoId: vinculo._id,
+                        vinculo: vinculo.status,
+                        especialidades: vinculo.especialidades,
+                        dataCadastro: moment(vinculo.dataCadastro).format('DD/MM/YYYY'),
+                    };
+                    return { _id: vinculo.colaboradorId._id, nome: vinculo.colaboradorId.nome, foto: vinculo.colaboradorId.foto };
+                }),
 
         });
 
@@ -393,10 +394,11 @@ ATUALIZAR COLABORADOR
 ==================================================
 */
 
-router.put('/:colaboradorId', async (req, res) => {
+router.put('/:colaboradorId', requireAuth, requireRole('salao'), async (req, res) => {
     const { colaboradorId } = req.params;
     const { salaoId, vinculoId, vinculo, especialidades } = req.body;
 
+    if (String(salaoId) !== String(req.auth.sub)) return res.status(403).json({ error: true, message: 'Você só pode editar a equipe do seu salão.' });
     if (!mongoose.isValidObjectId(colaboradorId) || !mongoose.isValidObjectId(salaoId) || !mongoose.isValidObjectId(vinculoId)) {
         return res.status(400).json({ error: true, message: 'Informe colaboradorId, salaoId e vinculoId válidos.' });
     }
@@ -494,11 +496,12 @@ router.put('/:colaboradorId', async (req, res) => {
 EXCLUIR VÍNCULO
 ==================================================
 */
-router.delete('/vinculo/:id', async (req, res) => {
+router.delete('/vinculo/:id', requireAuth, requireRole('salao'), async (req, res) => {
 
     try {
-        await SalaoColaborador.findByIdAndUpdate( req.params.id, {status: 'E'} );
-        res.json({error: false});
+        const vinculo = await SalaoColaborador.findOneAndUpdate({ _id: req.params.id, salaoId: req.auth.sub }, { status: 'E' });
+        if (!vinculo) return res.status(404).json({ error: true, message: 'Vínculo não encontrado neste salão.' });
+        return res.json({error: false});
 
     } catch (err) {
         res.json({error: true, message: err.message,});

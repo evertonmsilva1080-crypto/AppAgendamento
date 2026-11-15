@@ -4,8 +4,9 @@ const router = express.Router();
 const aws = require('../services/aws');
 const Arquivo = require('../models/arquivo');
 const Servico = require('../models/servico');
+const { requireAuth, requireRole, requireSalonOwner } = require('../auth/middleware');
 
-router.post('/', async (req, res) => {
+router.post('/', requireAuth, requireRole('salao'), requireSalonOwner, async (req, res) => {
     try {
 
         const { salaoId, servico } = req.body;
@@ -98,7 +99,7 @@ router.post('/', async (req, res) => {
     }
 });
 
-router.put('/:id', async (req, res) => {
+router.put('/:id', requireAuth, requireRole('salao'), async (req, res) => {
     try {
         const { id } = req.params;
 
@@ -113,6 +114,7 @@ router.put('/:id', async (req, res) => {
         }
 
         const { salaoId, servico } = req.body;
+        if (String(servicoExistente.salaoId) !== String(req.auth.sub) || (salaoId && String(salaoId) !== String(req.auth.sub))) return res.status(403).json({ error: true, message: 'Você só pode editar serviços do seu salão.' });
 
         // 2. Verifica se o campo servico foi enviado
         if (!servico) {
@@ -244,7 +246,7 @@ router.get('/salao/:salaoId', async (req, res) => {
     }
 });
 
-router.post('/delete-arquivo', async (req, res) => {
+router.post('/delete-arquivo', requireAuth, requireRole('salao'), async (req, res) => {
     try {
 
         const { id } = req.body;
@@ -271,6 +273,9 @@ router.post('/delete-arquivo', async (req, res) => {
         }
 
         console.log('Arquivo encontrado:', arquivo);
+
+        const serviceFileOwner = await Servico.findById(arquivo.referenciaId).select('salaoId');
+        if (!serviceFileOwner || String(serviceFileOwner.salaoId) !== String(req.auth.sub)) return res.status(403).json({ error: true, message: 'Você só pode remover arquivos do seu salão.' });
 
         const response = await aws.deleteFileS3(
             arquivo.caminho
@@ -301,11 +306,12 @@ router.post('/delete-arquivo', async (req, res) => {
     }
 });
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', requireAuth, requireRole('salao'), async (req, res) => {
     try {
         const { id } = req.params;
-        await Servico.findByIdAndUpdate(id, {status: 'E' });
-        res.json({error:false});
+        const service = await Servico.findOneAndUpdate({ _id: id, salaoId: req.auth.sub }, { status: 'E' });
+        if (!service) return res.status(404).json({ error: true, message: 'Serviço não encontrado neste salão.' });
+        return res.json({error:false});
     } catch (err) {
         res.json({ error: true, message: error.message});
     }

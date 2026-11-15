@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import { Avatar, Brand, Icon, Loading, PageState } from '../../components/UI.jsx'
 import { messageFromError, salonApi } from '../../services/api.js'
+import { getAuth } from '../../services/auth.js'
 import './booking.css'
 import './booking-week.css'
 
@@ -14,11 +15,9 @@ const duration = value => { const d=new Date(value); const m=d.getUTCHours()*60+
 
 export default function BookingPage({ specialistFirst = false }) {
   const { salaoId, servicoId } = useParams()
-  const navigate = useNavigate()
   const [service,setService]=useState(null),[salon,setSalon]=useState(null),[availability,setAvailability]=useState(null)
   const [selectedDate,setSelectedDate]=useState(''),[selectedCollaborator,setSelectedCollaborator]=useState(''),[selectedTime,setSelectedTime]=useState('')
   const [stage,setStage]=useState('schedule'),[busy,setBusy]=useState(false),[error,setError]=useState(''),[loading,setLoading]=useState(true),[completed,setCompleted]=useState(null)
-  const [form,setForm]=useState({nome:'',email:'',telefone:'',dataNascimento:'',sexo:'',documento:'',documentoTipo:'cpf'})
   const weekRange=upcomingWeekRange()
   const canBookDate=date=>date>=weekRange.start&&date<=weekRange.end
 
@@ -47,11 +46,11 @@ export default function BookingPage({ specialistFirst = false }) {
   function startClient(){if(!selectedDate||!selectedTime||!selectedCollaborator){setError('Escolha um profissional e um horário para continuar.');return}setError('');setStage('client');window.scrollTo({top:0,behavior:'smooth'})}
   async function confirmBooking(event){event.preventDefault();setBusy(true);setError('')
     try{
-      const clientData={nome:form.nome,email:form.email,telefone:form.telefone,dataNascimento:form.dataNascimento,sexo:form.sexo,documento:{tipo:form.documentoTipo,numero:form.documento}}
-      const clientResult=await salonApi.createClient({cliente:clientData,salaoId})
+      const session=getAuth()
+      if(session?.usuario?.role!=='cliente')throw new Error('Entre em uma conta de cliente para confirmar a reserva.')
       const [year,month,day]=selectedDate.split('-').map(Number),[hour,minute]=selectedTime.split(':').map(Number)
       const localDate=new Date(year,month-1,day,hour,minute,0)
-      const result=await salonApi.book({clienteId:clientResult.cliente._id,salaoId,servicoId,colaboradorId:selectedCollaborator,data:localDate.toISOString()})
+      const result=await salonApi.book({clienteId:session.usuario.id,salaoId,servicoId,colaboradorId:selectedCollaborator,data:localDate.toISOString()})
       setCompleted(result.agendamento);setStage('complete')
     }catch(e){setError(messageFromError(e))}finally{setBusy(false)}}
 
@@ -62,7 +61,7 @@ export default function BookingPage({ specialistFirst = false }) {
   return <div className="booking-page" data-flow={specialistFirst ? 'specialist' : 'standard'}><BookingHeader salon={salon}/><main className="booking-container">
     <Link className="back-link" to={`/salao/${salaoId}`}><span>←</span> Voltar para serviços</Link>
     <div className="booking-layout"><section className="booking-main">
-      <div className="booking-title"><span className="eyebrow">{stage==='client'?'SÓ MAIS UM PASSO':'ESCOLHA SEU HORÁRIO'}</span><h1>{stage==='client'?'Seus dados':specialistFirst?'Escolha seu especialista.':'Vamos encontrar um horário.'}</h1><p>{stage==='client'?'Precisamos de alguns dados para registrar sua reserva.':'Escolha quem vai atender você e um horário disponível. Você pode agendar somente para a próxima semana, até às 23h59 do dia anterior.'}</p></div>
+      <div className="booking-title"><span className="eyebrow">{stage==='client'?'SÓ MAIS UM PASSO':'ESCOLHA SEU HORÁRIO'}</span><h1>{stage==='client'?'Seus dados':specialistFirst?'Escolha seu especialista.':'Vamos encontrar um horário.'}</h1><p>{stage==='client'?'Confirme os dados da reserva vinculada à sua conta.':'Escolha quem vai atender você e um horário disponível. Você pode agendar somente para a próxima semana, até às 23h59 do dia anterior.'}</p></div>
       {stage==='schedule' ? <>
         <section className="booking-step"><div className="step-heading"><span className="step-number">01</span><div><h2>Especialista</h2><p>Escolha com quem quer agendar</p></div></div>
           {collaborators.length ? <div className="specialist-list">{collaborators.map(person=><button className={`specialist-option ${selectedCollaborator===person._id?'selected':''}`} key={person._id} onClick={()=>{setSelectedCollaborator(person._id);setSelectedTime('')}}><Avatar name={person.nome} src={person.foto}/><span className="specialist-name">{person.nome}</span><span className="specialist-check"><Icon name="check" size={15}/></span></button>)}</div> : <div className="notice-banner">Ainda não há especialistas disponíveis para este serviço.</div>}
@@ -75,8 +74,7 @@ export default function BookingPage({ specialistFirst = false }) {
         {error&&<div className="error-banner" role="alert">{error}</div>}
         <button className="button button-primary continue-button" disabled={!selectedTime||busy} onClick={startClient}>Continuar <Icon name="arrow" size={17}/></button>
       </> : <form className="client-form" onSubmit={confirmBooking}>
-        <div className="form-grid"><label className="field wide">Nome completo<input value={form.nome} onChange={e=>setForm({...form,nome:e.target.value})} autoComplete="name" required/></label><label className="field">E-mail<input type="email" value={form.email} onChange={e=>setForm({...form,email:e.target.value})} autoComplete="email" required/></label><label className="field">Celular<input type="tel" value={form.telefone} onChange={e=>setForm({...form,telefone:e.target.value})} autoComplete="tel" placeholder="(00) 00000-0000" required/></label><label className="field">Data de nascimento<input type="date" value={form.dataNascimento} onChange={e=>setForm({...form,dataNascimento:e.target.value})} required/></label><label className="field">Sexo<select value={form.sexo} onChange={e=>setForm({...form,sexo:e.target.value})} required><option value="">Selecione</option><option value="F">Feminino</option><option value="M">Masculino</option></select></label><label className="field">Documento<select value={form.documentoTipo} onChange={e=>setForm({...form,documentoTipo:e.target.value})}><option value="cpf">CPF</option><option value="cnpj">CNPJ</option></select></label><label className="field">Número do documento<input value={form.documento} onChange={e=>setForm({...form,documento:e.target.value})} inputMode="numeric" required/></label></div>
-        <div className="notice-banner">O cadastro é enviado ao serviço de clientes para vincular sua reserva. O pagamento está desativado no modo de teste.</div>{error&&<div className="error-banner" role="alert">{error}</div>}<div className="form-actions"><button type="button" className="button button-ghost" onClick={()=>setStage('schedule')}>Voltar</button><button className="button button-primary" disabled={busy}>{busy?'Salvando…':'Confirmar reserva'}</button></div>
+        <div className="notice-banner">A reserva será vinculada à conta <strong>{getAuth()?.usuario?.email}</strong>. Confira o salão, especialista, data e horário no resumo antes de confirmar.</div>{error&&<div className="error-banner" role="alert">{error}</div>}<div className="form-actions"><button type="button" className="button button-ghost" onClick={()=>setStage('schedule')}>Voltar</button><button className="button button-primary" disabled={busy}>{busy?'Salvando…':'Confirmar reserva'}</button></div>
       </form>}
       </section><aside className="booking-summary"><span className="eyebrow">RESUMO</span><h2>{service.titulo}</h2><div className="summary-meta"><span><Icon name="clock" size={15}/>{duration(service.duracao)}</span><span><Icon name="calendar" size={15}/>{selectedDate?prettyDay(selectedDate):'Escolha uma data'}{selectedTime?` · ${selectedTime}`:''}</span></div>{selectedPerson&&<div className="summary-person"><Avatar name={selectedPerson.nome} src={selectedPerson.foto}/><div><small>SEU ESPECIALISTA</small><strong>{selectedPerson.nome}</strong></div></div>}<div className="summary-total"><span>Total</span><strong>{money(service.preco)}</strong></div><p>Pagamento não é solicitado nesta etapa.</p></aside></div>
     </main>{stage==='schedule'&&<div className="mobile-bottom"><div className="bottom-inner"><div><span className="bottom-price">{money(service.preco)}</span><div className="muted" style={{fontSize:12}}>{selectedTime?`${selectedDate} · ${selectedTime}`:'Escolha seu horário'}</div></div><button className="button button-primary" disabled={!selectedTime||busy} onClick={startClient}>Continuar <Icon name="arrow" size={16}/></button></div></div>}</div>

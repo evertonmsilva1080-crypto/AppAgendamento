@@ -9,6 +9,7 @@ const Servico = require('../models/servico');
 const Colaborador = require('../models/colaborador');
 const SalaoColaborador = require('../models/relationship/salaoColaborador');
 const ColaboradorServico = require('../models/relationship/colaboradorServico');
+const { requireAuth, requireRole, requireSalonOwner } = require('../auth/middleware');
 
 async function validarHorario(dados) {
     const { salaoId, especialidades, colaboradores, dias, inicio, fim } = dados;
@@ -73,7 +74,7 @@ async function validarHorario(dados) {
     };
 }
 
-router.post('/', async (req, res) => {
+router.post('/', requireAuth, requireRole('salao'), requireSalonOwner, async (req, res) => {
     try {
         const validacao = await validarHorario(req.body);
         if (validacao.erro) return res.status(400).json({ error: true, message: validacao.erro });
@@ -85,7 +86,7 @@ router.post('/', async (req, res) => {
     }
 });
 
-router.get('/salao/:salaoId', async (req, res) => {
+router.get('/salao/:salaoId', requireAuth, requireRole('salao'), requireSalonOwner, async (req, res) => {
     try {
         const { salaoId } = req.params;
         const horario = await Horario.find({ salaoId });
@@ -95,7 +96,7 @@ router.get('/salao/:salaoId', async (req, res) => {
     }
 });
 
-router.put('/:horarioId', async (req, res) => {
+router.put('/:horarioId', requireAuth, requireRole('salao'), requireSalonOwner, async (req, res) => {
     try {
         const { horarioId } = req.params;
         if (!mongoose.isValidObjectId(horarioId)) {
@@ -125,7 +126,7 @@ router.put('/:horarioId', async (req, res) => {
     }
 });
 
-router.post('/colaboradores', async (req, res) => {
+router.post('/colaboradores', requireAuth, requireRole('salao'), async (req, res) => {
     try {
         const colaboradorServico = await ColaboradorServico.find({
             servicoId: { $in: req.body.especialidades },
@@ -148,7 +149,7 @@ router.post('/colaboradores', async (req, res) => {
     }
 });
 
-router.delete('/:horarioId', async (req, res) => {
+router.delete('/:horarioId', requireAuth, requireRole('salao'), requireSalonOwner, async (req, res) => {
     try {
         const { horarioId } = req.params;
         const { salaoId } = req.body || {};
