@@ -17,6 +17,8 @@ AppAgendamento/
 .vscode
 .impeccable
 **/api
+!/api/
+!/api/**
 **/PRODUCT.md
 **/skills-lock.json
 
