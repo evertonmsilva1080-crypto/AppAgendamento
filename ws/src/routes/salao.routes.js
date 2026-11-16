@@ -72,13 +72,16 @@ router.get('/:id', async (req, res) => {
     try {
 
         const salao = await Salao.findById(req.params.id)
-            .select('capa nome foto telefone endereco.cidade geo.coordinates diasFuncionamento');
-
-        const distance = turf.distance(
-            turf.point(salao.geo.coordinates),
-            turf.point([-35.381116, -7.951709]),
-            { units: 'kilometers' }
-        );
+            .select('capa nome foto telefone endereco.rua endereco.cidade endereco.uf geo.coordinates diasFuncionamento');
+        if (!salao) return res.status(404).json({ error: true, message: 'Salão não encontrado.' });
+        const coordinates = salao.geo?.coordinates;
+        const distance = Array.isArray(coordinates) && coordinates.length === 2
+            ? turf.distance(
+                turf.point(coordinates),
+                turf.point([-35.381116, -7.951709]),
+                { units: 'kilometers' }
+            )
+            : null;
 
         res.json({
             error: false,

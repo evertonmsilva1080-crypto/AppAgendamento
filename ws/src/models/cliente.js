@@ -41,11 +41,9 @@ const cliente = new Schema ({
         tipo: {
             type: String,
             enum: ['individual','corporation'],
-            required: true
         },
         numero: {
             type: String,
-            required: true
         },
     },
     endereco: {

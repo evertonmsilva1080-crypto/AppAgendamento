@@ -30,7 +30,6 @@ module.exports = {
     async uploadToS3(file, filename) {
 
         console.log('🔥 ENTROU NO uploadToS3');
-        console.log('FILE:', file);
         console.log('FILENAME:', filename);
 
         try {

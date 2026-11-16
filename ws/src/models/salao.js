@@ -23,6 +23,7 @@ const salao = new Schema({
         default: null,
     },
     endereco: {
+        rua: String,
         cidade: String,
         uf: String,
         cep: String,
@@ -37,12 +38,10 @@ const salao = new Schema({
     geo: {
         type: {
             type: String,
-            enum: ['Point'],
-            required: true
+            enum: ['Point']
         },
         coordinates: {
-            type: [Number],
-            required: true
+            type: [Number]
         }
     },
 });

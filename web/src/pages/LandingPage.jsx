@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Icon, Loading } from '../components/UI.jsx'
+import LandingHeader from '../components/LandingHeader.jsx'
 import ShapeHero from '../components/kokonutui/shape-hero.tsx'
 import { salonToolShapes } from '../components/FallingSalonTools.jsx'
 import CarouselCards from '../components/kokonutui/carousel-cards.tsx'
 import { messageFromError, salonApi } from '../services/api.js'
-import './LandingPage.css'
 
 const platformInstagram = import.meta.env.VITE_PLATFORM_INSTAGRAM || ''
 const platformContactEmail = import.meta.env.VITE_PLATFORM_CONTACT_EMAIL || ''
@@ -42,16 +42,7 @@ export default function LandingPage() {
   })), [salons])
 
   return <div className="landing-page">
-    <header className="landing-header">
-      <div className="landing-container landing-nav">
-        <Link to="/" className="landing-brand" aria-label="Agenda Fácil, início"><img src="/brand/logo-agenda-facil.png" alt="Agenda Fácil" /></Link>
-        <nav aria-label="Navegação principal" className="landing-nav-links">
-          <a href="#como-funciona">Como funciona</a>
-          <a href="#estabelecimentos">Estabelecimentos</a>
-        </nav>
-        <Link className="landing-nav-cta" to="/acesso/entrar">Entrar <Icon name="arrow" size={16}/></Link>
-      </div>
-    </header>
+    <LandingHeader />
 
     <main>
       <ShapeHero

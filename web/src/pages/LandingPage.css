@@ -68,6 +68,7 @@
 .landing-view-all{display:inline-flex;align-items:center;gap:6px;min-height:40px;margin-top:7px;color:#5422a0;font-size:12px;font-weight:700}
 .landing-view-all:hover{color:#ff6d00}
 .landing-salon-carousel>div:first-child{display:none}
+.landing-nav-back-icon{transform:rotate(180deg)}
 @media(max-width:650px){.landing-directory-heading{display:flex;align-items:flex-end;gap:8px}.landing-directory-heading>div{min-width:0}.landing-view-all{flex:none;margin-top:0;margin-bottom:4px;white-space:nowrap}}
 /* Tighten the mobile handoff from salon cards to the next section. */
 @media(max-width:650px){

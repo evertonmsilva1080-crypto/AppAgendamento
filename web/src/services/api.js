@@ -2,7 +2,7 @@ import axios from 'axios'
 import { getAuth } from './auth.js'
 
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000',
+  baseURL: import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '/api' : 'http://localhost:8000'),
   timeout: 12000,
 })
 
@@ -34,7 +34,7 @@ export const salonApi = {
   updateService: async (id, salaoId, servico) => unwrap(await api.put(`/servico/${id}`, { salaoId, servico })),
   deleteService: async (id) => unwrap(await api.delete(`/servico/${id}`)),
   staff: async (id) => unwrap(await api.get(`/colaborador/salao/${id}`)),
-  createCollaborator: async (salaoId, colaborador) => unwrap(await api.post('/colaborador', { salaoId, colaborador })),
+  createCollaborator: async (salaoId, colaborador) => unwrap(await api.post('/colaborador', colaborador instanceof FormData ? colaborador : { salaoId, colaborador })),
   updateCollaborator: async (id, body) => unwrap(await api.put(`/colaborador/${id}`, body)),
   removeCollaboratorLink: async (vinculoId) => unwrap(await api.delete(`/colaborador/vinculo/${vinculoId}`)),
   hours: async (id) => unwrap(await api.get(`/horario/salao/${id}`)),

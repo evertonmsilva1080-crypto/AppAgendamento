@@ -1,5 +1,6 @@
 const express = require('express');
 const mongoose = require('mongoose');
+const crypto = require('crypto');
 
 const router = express.Router();
 
@@ -7,11 +8,47 @@ const Colaborador = require('../models/colaborador');
 const SalaoColaborador = require('../models/relationship/salaoColaborador');
 const ColaboradorServico = require('../models/relationship/colaboradorServico');
 const Servico = require('../models/servico');
+const aws = require('../services/aws');
 
 const moment = require('moment');
 
 const asaas = require('../services/asaas');
 const { optionalAuth, requireAuth, requireRole } = require('../auth/middleware');
+
+const fotoExtensions = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif' };
+async function uploadFotoColaborador(file) {
+    if (!file) return null;
+    const extension = fotoExtensions[file.mimetype];
+    if (!extension) {
+        const error = new Error('A foto precisa ser JPG, PNG, WEBP ou GIF.');
+        error.statusCode = 400;
+        throw error;
+    }
+    if (!file.data || file.data.length > 4 * 1024 * 1024) {
+        const error = new Error('A foto deve ter no máximo 4 MB.');
+        error.statusCode = 400;
+        throw error;
+    }
+    const signatures = {
+        'image/jpeg': data => data[0] === 0xff && data[1] === 0xd8 && data[2] === 0xff,
+        'image/png': data => data.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])),
+        'image/webp': data => data.toString('ascii', 0, 4) === 'RIFF' && data.toString('ascii', 8, 12) === 'WEBP',
+        'image/gif': data => ['GIF87a', 'GIF89a'].includes(data.toString('ascii', 0, 6)),
+    };
+    if (!signatures[file.mimetype](file.data)) {
+        const error = new Error('O arquivo selecionado não corresponde ao formato de imagem informado.');
+        error.statusCode = 400;
+        throw error;
+    }
+    const key = `colaboradores/fotos/${crypto.randomUUID()}.${extension}`;
+    const result = await aws.uploadToS3(file, key);
+    if (result.error) {
+        const error = new Error('Não foi possível enviar a foto. Tente novamente.');
+        error.statusCode = 502;
+        throw error;
+    }
+    return { key, url: result.message.Location };
+}
 
 router.post('/', requireAuth, requireRole('salao'), async (req, res) => {
     if (String(req.body?.salaoId) !== String(req.auth.sub)) return res.status(403).json({ error: true, message: 'Você só pode gerenciar a equipe do seu salão.' });
@@ -20,10 +57,20 @@ router.post('/', requireAuth, requireRole('salao'), async (req, res) => {
     const session = await db.startSession();
 
     session.startTransaction();
+    let uploadedPhotoKey = null;
 
     try {
 
-        const { colaborador, salaoId } = req.body;
+        let { colaborador, salaoId } = req.body || {};
+        if (typeof colaborador === 'string') {
+            try {
+                colaborador = JSON.parse(colaborador);
+            } catch (error) {
+                error.statusCode = 400;
+                error.message = 'Os dados do colaborador são inválidos.';
+                throw error;
+            }
+        }
 
         let newColaborador = null;
 
@@ -33,7 +80,7 @@ router.post('/', requireAuth, requireRole('salao'), async (req, res) => {
         ==================================================
         */
 
-        if (!colaborador) {
+        if (!colaborador || typeof colaborador !== 'object' || Array.isArray(colaborador)) {
             throw new Error('O campo colaborador é obrigatório.');
         }
 
@@ -53,6 +100,12 @@ router.post('/', requireAuth, requireRole('salao'), async (req, res) => {
                 { telefone: colaborador.telefone },
             ],
         });
+
+        if (!existentColaborador && req.files?.foto) {
+            const uploadedPhoto = await uploadFotoColaborador(req.files.foto);
+            uploadedPhotoKey = uploadedPhoto.key;
+            colaborador.foto = uploadedPhoto.url;
+        }
 
         /*
         ==================================================
@@ -286,6 +339,8 @@ router.post('/', requireAuth, requireRole('salao'), async (req, res) => {
             await session.abortTransaction();
         }
 
+        if (uploadedPhotoKey) await aws.deleteFileS3(uploadedPhotoKey);
+
         session.endSession();
 
         console.error(
@@ -293,7 +348,7 @@ router.post('/', requireAuth, requireRole('salao'), async (req, res) => {
             err
         );
 
-        return res.status(500).json({
+        return res.status(err.statusCode || 500).json({
 
             error: true,
 
@@ -396,7 +451,16 @@ ATUALIZAR COLABORADOR
 
 router.put('/:colaboradorId', requireAuth, requireRole('salao'), async (req, res) => {
     const { colaboradorId } = req.params;
-    const { salaoId, vinculoId, vinculo, especialidades } = req.body;
+    const { salaoId, vinculoId, vinculo } = req.body || {};
+    let { especialidades } = req.body || {};
+
+    if (typeof especialidades === 'string') {
+        try {
+            especialidades = JSON.parse(especialidades);
+        } catch {
+            return res.status(400).json({ error: true, message: 'especialidades deve ser uma lista válida de serviços.' });
+        }
+    }
 
     if (String(salaoId) !== String(req.auth.sub)) return res.status(403).json({ error: true, message: 'Você só pode editar a equipe do seu salão.' });
     if (!mongoose.isValidObjectId(colaboradorId) || !mongoose.isValidObjectId(salaoId) || !mongoose.isValidObjectId(vinculoId)) {
@@ -411,6 +475,7 @@ router.put('/:colaboradorId', requireAuth, requireRole('salao'), async (req, res
 
     const session = await mongoose.connection.startSession();
     session.startTransaction();
+    let uploadedPhotoKey = null;
 
     try {
         const relacao = await SalaoColaborador.findOne({
@@ -433,6 +498,12 @@ router.put('/:colaboradorId', requireAuth, requireRole('salao'), async (req, res
             }
         }
 
+        if (req.files?.foto) {
+            const uploadedPhoto = await uploadFotoColaborador(req.files.foto);
+            uploadedPhotoKey = uploadedPhoto.key;
+            dadosColaborador.foto = uploadedPhoto.url;
+        }
+
         let colaborador = await Colaborador.findByIdAndUpdate(
             colaboradorId,
             dadosColaborador,
@@ -441,6 +512,7 @@ router.put('/:colaboradorId', requireAuth, requireRole('salao'), async (req, res
 
         if (!colaborador) {
             await session.abortTransaction();
+            if (uploadedPhotoKey) await aws.deleteFileS3(uploadedPhotoKey);
             return res.status(404).json({ error: true, message: 'Colaborador não encontrado.' });
         }
 
@@ -454,6 +526,7 @@ router.put('/:colaboradorId', requireAuth, requireRole('salao'), async (req, res
             const idsInvalidos = idsSolicitados.filter(id => !mongoose.isValidObjectId(id));
             if (idsInvalidos.length) {
                 await session.abortTransaction();
+                if (uploadedPhotoKey) await aws.deleteFileS3(uploadedPhotoKey);
                 return res.status(400).json({ error: true, message: 'Uma ou mais especialidades contêm IDs inválidos.' });
             }
 
@@ -465,6 +538,7 @@ router.put('/:colaboradorId', requireAuth, requireRole('salao'), async (req, res
             const servicosDeOutroSalao = idsSolicitados.filter(id => !idsDisponiveis.has(id));
             if (servicosDeOutroSalao.length) {
                 await session.abortTransaction();
+                if (uploadedPhotoKey) await aws.deleteFileS3(uploadedPhotoKey);
                 return res.status(400).json({ error: true, message: 'Todas as especialidades precisam ser serviços disponíveis deste salão.' });
             }
 
@@ -485,8 +559,9 @@ router.put('/:colaboradorId', requireAuth, requireRole('salao'), async (req, res
         return res.json({ error: false, colaborador });
     } catch (err) {
         if (session.inTransaction()) await session.abortTransaction();
+        if (uploadedPhotoKey) await aws.deleteFileS3(uploadedPhotoKey);
         console.error('Erro ao atualizar colaborador:', err);
-        return res.status(500).json({ error: true, message: err.message });
+        return res.status(err.statusCode || 500).json({ error: true, message: err.message });
     } finally {
         await session.endSession();
     }

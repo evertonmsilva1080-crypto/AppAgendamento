@@ -1,0 +1,8 @@
+.collaborator-form-grid .service-field input[type="file"]{box-sizing:border-box;width:100%;min-width:0;height:auto;min-height:48px;padding:7px;border:1px dashed #64536f;border-radius:10px;background:#211a27;color:#c7b9cf;font-size:12px;cursor:pointer}
+.collaborator-form-grid .service-field input[type="file"]::file-selector-button{min-height:32px;margin:0 9px 0 0;padding:0 12px;border:0;border-radius:8px;background:linear-gradient(135deg,#7b2cbf,#5a189a);color:white;font:inherit;font-weight:700;cursor:pointer;transition:background .18s ease,transform .18s ease}
+.collaborator-form-grid .service-field input[type="file"]::file-selector-button:hover{background:linear-gradient(135deg,#ff7900,#ff6d00);transform:translateY(-1px)}
+.collaborator-photo-preview{display:flex;align-items:center;gap:12px;min-width:0}
+.collaborator-photo-preview img{width:64px;height:64px;flex:none;object-fit:cover;border:1px solid #554660;border-radius:14px;background:#211a27}
+.collaborator-photo-preview button{padding:7px 0;border:0;background:transparent;color:#d39af4;font-size:11px;font-weight:700;cursor:pointer;text-align:left}
+.collaborator-photo-preview button:hover{color:#ff9e00}
+@media(max-width:650px){.collaborator-photo-preview img{width:56px;height:56px}}
