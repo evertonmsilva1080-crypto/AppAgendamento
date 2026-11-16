@@ -15,9 +15,18 @@ app.use(cors());
 // Vercel serves this API under /api; strip that prefix so existing route
 // definitions continue to work unchanged in both Vercel and local Express.
 app.use((req, res, next) => {
+    console.log('========== REQUISIÇÃO RECEBIDA ==========');
+    console.log('METHOD:', req.method);
+    console.log('URL:', req.url);
+    console.log('ORIGINAL URL:', req.originalUrl);
+
     if (req.url === '/api' || req.url.startsWith('/api/')) {
         req.url = req.url.slice(4) || '/';
     }
+
+    console.log('URL APÓS TRATAMENTO:', req.url);
+    console.log('=========================================');
+
     next();
 });
 
