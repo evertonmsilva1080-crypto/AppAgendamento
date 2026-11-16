@@ -1,3 +1,4 @@
+
 const express = require('express');
 const app = express();
 const morgan = require('morgan');
@@ -12,8 +13,7 @@ app.use(busboy());
 app.use(busboyBodyParser());
 app.use(cors());
 
-// Vercel serves this API under /api; strip that prefix so existing route
-// definitions continue to work unchanged in both Vercel and local Express.
+// Remove o prefixo /api utilizado pela Vercel.
 app.use((req, res, next) => {
     console.log('========== REQUISIÇÃO RECEBIDA ==========');
     console.log('METHOD:', req.method);
@@ -30,12 +30,25 @@ app.use((req, res, next) => {
     next();
 });
 
+// ROTA TEMPORÁRIA PARA TESTAR ROTAS DINÂMICAS NA VERCEL.
+app.get('/teste-api/:id', (req, res) => {
+    res.json({
+        funcionando: true,
+        mensagem: 'Rota dinâmica funcionando!',
+        id: req.params.id,
+        url: req.url,
+        originalUrl: req.originalUrl
+    });
+});
+
+// Conexão com o banco de dados.
 app.use(async (req, res, next) => {
     try {
         await connectDatabase();
         next();
     } catch (error) {
         console.error('Falha de conexão com MongoDB:', error.message);
+
         return res.status(503).json({
             error: true,
             message: 'Banco de dados indisponível. Verifique MONGODB_URI, as credenciais e o acesso de rede do MongoDB Atlas.',
@@ -45,6 +58,7 @@ app.use(async (req, res, next) => {
 
 app.set('port', process.env.PORT || 8000);
 
+// Rotas da aplicação.
 app.use('/auth', require('./src/routes/auth.routes'));
 app.use('/salao', require('./src/routes/salao.routes'));
 app.use('/servico', require('./src/routes/servico.routes'));
@@ -60,4 +74,3 @@ if (require.main === module) {
 }
 
 module.exports = app;
-
