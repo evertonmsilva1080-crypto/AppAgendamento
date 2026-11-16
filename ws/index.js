@@ -4,7 +4,7 @@ const morgan = require('morgan');
 const cors = require('cors');
 const busboy = require('connect-busboy');
 const busboyBodyParser = require('busboy-body-parser');
-require('./database');
+const connectDatabase = require('./database');
 
 app.use(morgan('dev'));
 app.use(express.json());
@@ -19,6 +19,19 @@ app.use((req, res, next) => {
         req.url = req.url.slice(4) || '/';
     }
     next();
+});
+
+app.use(async (req, res, next) => {
+    try {
+        await connectDatabase();
+        next();
+    } catch (error) {
+        console.error('Falha de conexão com MongoDB:', error.message);
+        return res.status(503).json({
+            error: true,
+            message: 'Banco de dados indisponível. Verifique MONGODB_URI, as credenciais e o acesso de rede do MongoDB Atlas.',
+        });
+    }
 });
 
 app.set('port', process.env.PORT || 8000);

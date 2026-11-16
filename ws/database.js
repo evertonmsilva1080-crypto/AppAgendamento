@@ -7,16 +7,32 @@ require('dotenv').config({
 const mongoose = require('mongoose');
 
 const URI = process.env.MONGODB_URI;
+let connectionPromise = null;
 
-if (!URI) {
-    throw new Error('A variável MONGODB_URI não foi configurada em ws/.env.');
+function connectDatabase() {
+    if (mongoose.connection.readyState === 1) return Promise.resolve(mongoose);
+
+    if (!URI) {
+        return Promise.reject(new Error('A variável MONGODB_URI não foi configurada.'));
+    }
+
+    if (mongoose.connection.readyState === 2 && connectionPromise) {
+        return connectionPromise;
+    }
+
+    connectionPromise = mongoose.connect(URI, {
+        dbName: 'AgendaFacil',
+        serverSelectionTimeoutMS: 10000,
+        maxPoolSize: 10,
+    }).then(() => {
+        console.log('Conexão com o banco AgendaFacil estabelecida.');
+        return mongoose;
+    }).catch(error => {
+        connectionPromise = null;
+        throw error;
+    });
+
+    return connectionPromise;
 }
 
-mongoose
-    .connect(URI, { dbName: 'AgendaFacil' })
-    .then(() => {
-        console.log('DB is Up!');
-    })
-    .catch((err) => {
-        console.error('Erro ao conectar ao MongoDB:', err);
-    });
+module.exports = connectDatabase;
